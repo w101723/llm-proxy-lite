@@ -30,7 +30,7 @@ function run(command, args) {
       cwd: projectRoot,
       stdio: 'inherit',
       env: process.env,
-      shell: false,
+      shell: process.platform === 'win32',
     })
     child.on('error', reject)
     child.on('close', code => {
