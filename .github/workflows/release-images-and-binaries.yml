@@ -112,10 +112,29 @@ jobs:
       contents: write
 
     steps:
-      - name: Download all binary artifacts
+      - name: Download linux amd64 artifact
         uses: actions/download-artifact@v4
         with:
-          path: release-assets
+          name: llm-proxy-lite-linux-x64
+          path: release-assets/llm-proxy-lite-linux-x64
+
+      - name: Download linux arm64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: llm-proxy-lite-linux-arm64
+          path: release-assets/llm-proxy-lite-linux-arm64
+
+      - name: Download darwin arm64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: llm-proxy-lite-darwin-arm64
+          path: release-assets/llm-proxy-lite-darwin-arm64
+
+      - name: Download windows amd64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: llm-proxy-lite-win32-x64.exe
+          path: release-assets/llm-proxy-lite-win32-x64.exe
 
       - name: Create GitHub Release with assets
         uses: softprops/action-gh-release@v2
