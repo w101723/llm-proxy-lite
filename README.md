@@ -76,6 +76,7 @@ npm install
 默认模式：
 
 ```bash
+OPENAI_API_BASE=https://your-openai-compatible.example/v1 \
 OPENAI_API_KEY=sk-xxxxxxxxxxxx \
 CLIENT_API_KEY=your-client-key \
 node llm-proxy-lite.js
@@ -84,7 +85,7 @@ node llm-proxy-lite.js
 直接透传客户端 API key 模式：
 
 ```bash
-API_KEY_DIRECTY=true node llm-proxy-lite.js
+OPENAI_API_BASE=https://your-openai-compatible.example/v1 API_KEY_DIRECTY=true node llm-proxy-lite.js
 ```
 
 ### Claude Code 接入
@@ -102,6 +103,33 @@ export OPENAI_BASE_URL=http://localhost:3000/v1
 export OPENAI_API_KEY=your-client-key
 ```
 
+### Docker 使用
+
+拉取镜像：
+
+```bash
+docker pull ghcr.io/w101723/llm-proxy-lite:latest
+```
+
+默认模式运行：
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e OPENAI_API_BASE=https://your-openai-compatible.example/v1 \
+  -e OPENAI_API_KEY=sk-xxxxxxxxxxxx \
+  -e CLIENT_API_KEY=your-client-key \
+  ghcr.io/w101723/llm-proxy-lite:latest
+```
+
+直接透传客户端 API key 模式：
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e OPENAI_API_BASE=https://your-openai-compatible.example/v1 \
+  -e API_KEY_DIRECTY=true \
+  ghcr.io/w101723/llm-proxy-lite:latest
+```
+
 ---
 
 ## 环境变量
@@ -111,7 +139,7 @@ export OPENAI_API_KEY=your-client-key
 | `OPENAI_API_KEY` | — | 默认模式必填 | 上游 OpenAI-compatible 服务 API Key；`API_KEY_DIRECTY=true` 时不需要 |
 | `CLIENT_API_KEY` | — | 默认模式必填 | 代理入站鉴权 Key；`API_KEY_DIRECTY=true` 时不需要 |
 | `API_KEY_DIRECTY` | `false` | 否 | `true` 时直接透传客户端 API key 到上游认证 |
-| `OPENAI_API_BASE` | `https://api.openai.com/v1` | 否 | 上游 OpenAI-compatible API Base |
+| `OPENAI_API_BASE` | `https://api.openai.com/v1` | 是 | 上游 OpenAI-compatible API Base |
 | `PORT` | `3000` | 否 | 监听端口 |
 | `HOST` | `0.0.0.0` | 否 | 监听地址 |
 | `LOG_LEVEL` | `info` | 否 | `debug` / `info` / `none` |
@@ -121,6 +149,7 @@ export OPENAI_API_KEY=your-client-key
 
 ```bash
 MODEL_MAP_JSON='{"claude-sonnet-4-6":"mimo-v2.5"}' \
+OPENAI_API_BASE=https://your-openai-compatible.example/v1 \
 OPENAI_API_KEY=sk-xxxxxxxxxxxx \
 CLIENT_API_KEY=your-client-key \
 node llm-proxy-lite.js

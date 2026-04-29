@@ -13,7 +13,7 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: write
 
     steps:
@@ -58,22 +58,93 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+  build-release-binaries:
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            make_target: release-linux-amd64
+            artifact_name: llm-proxy-lite-linux-x64
+            artifact_path: dist/linux-x64/llm-proxy-lite-linux-x64
+          - os: ubuntu-24.04-arm
+            make_target: release-linux-arm64
+            artifact_name: llm-proxy-lite-linux-arm64
+            artifact_path: dist/linux-arm64/llm-proxy-lite-linux-arm64
+          - os: macos-14
+            make_target: release-darwin-arm64
+            artifact_name: llm-proxy-lite-darwin-arm64
+            artifact_path: dist/darwin-arm64/llm-proxy-lite-darwin-arm64
+          - os: windows-latest
+            make_target: release-windows-amd64
+            artifact_name: llm-proxy-lite-win32-x64.exe
+            artifact_path: dist/win32-x64/llm-proxy-lite-win32-x64.exe
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build binary
+        run: make ${{ matrix.make_target }}
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - docker-build
+      - build-release-binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Create GitHub Release with assets
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          files: |
+            release-assets/llm-proxy-lite-linux-x64/llm-proxy-lite-linux-x64
+            release-assets/llm-proxy-lite-linux-arm64/llm-proxy-lite-linux-arm64
+            release-assets/llm-proxy-lite-darwin-arm64/llm-proxy-lite-darwin-arm64
+            release-assets/llm-proxy-lite-win32-x64.exe/llm-proxy-lite-win32-x64.exe
           body: |
             ## Build Targets (from Makefile)
 
-            - `make build-bin`
-            - `make release-bins`
-            - `make clean`
-            - `make release-all`
+            Included release binaries are produced from these targets:
             - `make release-linux-amd64`
             - `make release-linux-arm64`
             - `make release-darwin-arm64`
             - `make release-windows-amd64`
+
+            Additional Makefile targets:
+            - `make build-bin`
+            - `make release-bins`
+            - `make clean`
+            - `make release-all`
 
             ## Docker Image
 
@@ -84,3 +155,15 @@ jobs:
             Published to:
             - `ghcr.io/${{ github.repository }}:${{ github.ref_name }}`
             - `ghcr.io/${{ github.repository }}:sha-<commit>`
+
+            ## macOS 运行注意事项
+
+            macOS 二进制已做 ad-hoc 签名；如仍被系统拦截，请执行：
+
+            ```bash
+            xattr -cr ./llm-proxy-lite-darwin-arm64
+            chmod +x ./llm-proxy-lite-darwin-arm64
+            ./llm-proxy-lite-darwin-arm64
+            ```
+
+            若提示来源受限，可在“系统设置 → 隐私与安全性”中允许后再次运行。
