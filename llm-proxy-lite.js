@@ -658,7 +658,15 @@ function buildOpenAIHeaders(req, body) {
 
 function getOpenAIBody(req) {
   if (req.method === 'GET' || req.method === 'HEAD') return undefined
-  if (req.is('application/json') && req.body != null) return JSON.stringify(req.body)
+  if (req.is('application/json') && req.body != null) {
+    if (req.body.stream && req.path === '/v1/chat/completions') {
+      req.body.stream_options = {
+        ...req.body.stream_options,
+        include_usage: true,
+      }
+    }
+    return JSON.stringify(req.body)
+  }
   return req
 }
 
@@ -717,7 +725,21 @@ async function pipeUpstreamResponse(upstream, req, res, startTime) {
   const contentType = upstream.headers.get('content-type') || ''
   const isSse = contentType.includes('text/event-stream')
   if (isSse && upstream.ok) {
-    upstream.body.on('end', () => log.info(`← OpenAI ${upstream.status} ${req.method} ${req.originalUrl} | stream | ${Date.now() - startTime}ms`))
+    let streamUsage
+    const parser = createParser((event) => {
+      if (event.data === '[DONE]') return
+      try {
+        const chunk = JSON.parse(event.data)
+        if (chunk.usage) streamUsage = convertUsage(chunk.usage)
+      } catch (err) {
+        log.debug('OpenAI passthrough SSE parse error:', err.message)
+      }
+    })
+    upstream.body.on('data', chunk => parser.feed(chunk.toString()))
+    upstream.body.on('end', () => {
+      const usage = streamUsage ? ` | ${formatTokenUsage(streamUsage)}` : ' | stream'
+      log.info(`← OpenAI ${upstream.status} ${req.method} ${req.originalUrl}${usage} | ${Date.now() - startTime}ms`)
+    })
     upstream.body.on('error', err => log.error('OpenAI stream error:', err))
     return upstream.body.pipe(res)
   }
