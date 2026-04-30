@@ -392,5 +392,12 @@ chmod +x <二进制文件路径>
 ├── Makefile
 ├── Dockerfile
 ├── go.mod
+├── LICENSE
 └── README.md
 ```
+
+---
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
