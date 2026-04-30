@@ -65,10 +65,10 @@ Authorization: Bearer $OPENAI_API_KEY
 
 ## 快速开始
 
-### 安装
+### 构建
 
 ```bash
-npm install
+go build -o llm-proxy-lite ./cmd/llm-proxy-lite
 ```
 
 ### 启动
@@ -79,13 +79,13 @@ npm install
 OPENAI_API_BASE=https://your-openai-compatible.example/v1 \
 OPENAI_API_KEY=sk-xxxxxxxxxxxx \
 CLIENT_API_KEY=your-client-key \
-node llm-proxy-lite.js
+./llm-proxy-lite
 ```
 
 直接透传客户端 API key 模式：
 
 ```bash
-OPENAI_API_BASE=https://your-openai-compatible.example/v1 API_KEY_DIRECTY=true node llm-proxy-lite.js
+OPENAI_API_BASE=https://your-openai-compatible.example/v1 API_KEY_DIRECTY=true ./llm-proxy-lite
 ```
 
 ### Claude Code 接入
@@ -152,7 +152,7 @@ MODEL_MAP_JSON='{"claude-sonnet-4-6":"mimo-v2.5"}' \
 OPENAI_API_BASE=https://your-openai-compatible.example/v1 \
 OPENAI_API_KEY=sk-xxxxxxxxxxxx \
 CLIENT_API_KEY=your-client-key \
-node llm-proxy-lite.js
+./llm-proxy-lite
 ```
 
 ---
@@ -337,17 +337,11 @@ curl http://localhost:3000/health
 
 ## 二进制打包
 
-项目支持 Node SEA 单文件可执行程序。
+项目使用 Go 构建单文件可执行程序。
 
 ```bash
-npm install
-npm run build:bin
+make build-bin
 ```
-
-默认产物：
-
-- macOS / Linux: `dist/llm-proxy-lite`
-- Windows: `dist/llm-proxy-lite.exe`
 
 Make 目标：
 
@@ -359,7 +353,12 @@ make release-darwin-arm64
 make release-windows-amd64
 ```
 
-> SEA 不是一次构建多架构通吃；跨架构需在对应平台/runner 分别构建。
+默认产物位于 `dist/<platform>-<arch>/`，例如：
+
+- `dist/linux-amd64/llm-proxy-lite-linux-amd64`
+- `dist/linux-arm64/llm-proxy-lite-linux-arm64`
+- `dist/darwin-arm64/llm-proxy-lite-darwin-arm64`
+- `dist/win32-amd64/llm-proxy-lite-win32-amd64.exe`
 
 ### macOS 运行注意事项
 
@@ -388,10 +387,10 @@ chmod +x <二进制文件路径>
 
 ```text
 .
-├── llm-proxy-lite.js
-├── scripts/build-bin.mjs
+├── cmd/llm-proxy-lite/main.go
+├── internal/
 ├── Makefile
-├── package.json
 ├── Dockerfile
+├── go.mod
 └── README.md
 ```

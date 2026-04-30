@@ -1,38 +1,30 @@
-FROM node:20-alpine AS builder
-WORKDIR /app
+FROM golang:1.26.1-alpine AS builder
+WORKDIR /src
 
-RUN apk add --no-cache make
+RUN apk add --no-cache ca-certificates
 
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY go.mod ./
+COPY cmd ./cmd
+COPY internal ./internal
 
-COPY Makefile ./
-COPY scripts ./scripts
-COPY llm-proxy-lite.js ./
+RUN CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" \
+  go build -trimpath -ldflags="-s -w" -o /out/llm-proxy-lite ./cmd/llm-proxy-lite
 
-RUN set -eux; \
-  case "$TARGETARCH" in \
-    amd64) NODE_ARCH=x64 ;; \
-    arm64) NODE_ARCH=arm64 ;; \
-    *) echo "Unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
-  esac; \
-  make build-bin PLATFORM="$TARGETOS" ARCH="$NODE_ARCH"; \
-  mkdir -p /out; \
-  cp "dist/${TARGETOS}-${NODE_ARCH}/llm-proxy-lite-${TARGETOS}-${NODE_ARCH}" /out/llm-proxy-lite; \
-  chmod +x /out/llm-proxy-lite
-
-FROM node:20-alpine AS runtime
+FROM scratch AS runtime
 WORKDIR /app
 
 ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV LOG_LEVEL=info
 
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /out/llm-proxy-lite /usr/local/bin/llm-proxy-lite
+
+USER 65532:65532
 
 EXPOSE 3000
 
-CMD ["/usr/local/bin/llm-proxy-lite"]
+ENTRYPOINT ["/usr/local/bin/llm-proxy-lite"]
