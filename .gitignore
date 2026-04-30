@@ -3,6 +3,7 @@ node_modules/
 
 # Build outputs
 dist/
+/llm-proxy-lite
 
 # Environment files
 .env
